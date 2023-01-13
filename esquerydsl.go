@@ -158,14 +158,14 @@ func WrapQueryItems(itemType string, items ...QueryItem) QueryItem {
 //	    }
 //	}
 type queryReqDoc struct {
-	Query       queryWrap           `json:"query,omitempty"`
+	Query       QueryWrap           `json:"query,omitempty"`
 	Size        int                 `json:"size,omitempty"`
 	From        int                 `json:"from,omitempty"`
 	Sort        []map[string]string `json:"sort,omitempty"`
 	SearchAfter []interface{}       `json:"search_after,omitempty"`
 }
 
-type queryWrap struct {
+type QueryWrap struct {
 	Bool boolWrap `json:"bool"`
 }
 
@@ -224,7 +224,7 @@ func (q LeafQuery) handleMarshalNestedQuery() ([]byte, error) {
 	return json.Marshal(map[string]interface{}{
 		"nested": map[string]interface{}{
 			"path":  []string{q.Name},
-			"query": getWrappedQuery(item),
+			"query": GetWrappedQuery(item),
 		},
 	})
 }
@@ -236,7 +236,7 @@ type query interface {
 	filterList() []QueryItem
 }
 
-func getWrappedQuery(query query) queryWrap {
+func GetWrappedQuery(query query) QueryWrap {
 	boolDoc := boolWrap{}
 	if and := query.andList(); len(and) > 0 {
 		boolDoc.AndList = updateList(and)
@@ -250,12 +250,12 @@ func getWrappedQuery(query query) queryWrap {
 	if filter := query.filterList(); len(filter) > 0 {
 		boolDoc.FilterList = updateList(filter)
 	}
-	return queryWrap{Bool: boolDoc}
+	return QueryWrap{Bool: boolDoc}
 }
 
 func (q LeafQuery) MarshalJSON() ([]byte, error) {
 	if q.Type == Nested {
-		return json.Marshal(getWrappedQuery(q.Value.(QueryDoc)))
+		return json.Marshal(GetWrappedQuery(q.Value.(QueryDoc)))
 	}
 
 	var queryType string
@@ -283,7 +283,7 @@ func updateList(queryItems []QueryItem) []LeafQuery {
 // valid and spec compliant JSON representation
 func (query QueryDoc) MarshalJSON() ([]byte, error) {
 	queryReq := queryReqDoc{
-		Query:       getWrappedQuery(query),
+		Query:       GetWrappedQuery(query),
 		Size:        query.Size,
 		From:        query.From,
 		Sort:        query.Sort,
