@@ -24,6 +24,7 @@ const (
 	QueryString
 	Nested
 	NestedQuery
+	Prefix = 9
 )
 
 // QueryTypeErr is a custom err returned if we are trying to stringify
@@ -47,6 +48,7 @@ func (qt QueryType) String() (string, error) {
 		"query_string",
 		"nested",
 		"nested_query",
+		"prefix",
 	}
 	if int(qt) > len(convs) {
 		return "", &QueryTypeErr{typeVal: qt}
@@ -145,15 +147,16 @@ func WrapQueryItems(itemType string, items ...QueryItem) QueryItem {
 }
 
 // Builds a JSON string as follows:
-// {
-//     "query": {
-//         "bool": {
-//             "must": [ ... ]
-//             "should": [ ... ]
-//             "filter": [ ... ]
-//         }
-//     }
-// }
+//
+//	{
+//	    "query": {
+//	        "bool": {
+//	            "must": [ ... ]
+//	            "should": [ ... ]
+//	            "filter": [ ... ]
+//	        }
+//	    }
+//	}
 type queryReqDoc struct {
 	Query       queryWrap           `json:"query,omitempty"`
 	Size        int                 `json:"size,omitempty"`
