@@ -6,6 +6,28 @@ import (
 	"testing"
 )
 
+func TestWrappedQuery(t *testing.T) {
+	item := NestedQueryItem{
+		Not: []QueryItem{
+			{
+				Field: "field",
+				Type:  Exists,
+				Value: "value",
+			},
+		},
+	}
+
+	body, err := json.Marshal(GetWrappedQuery(item))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := `{"bool":{"must_not":[{"exists":{"field":"value"}}]}}`
+	if string(body) != expected {
+		t.Errorf("\nWant: %q\nHave: %q", expected, string(body))
+	}
+}
+
 func TestBogusQueryType(t *testing.T) {
 	_, err := json.Marshal(QueryDoc{
 		Index: "some_index",
