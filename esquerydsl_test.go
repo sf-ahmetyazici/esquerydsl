@@ -6,6 +6,26 @@ import (
 	"testing"
 )
 
+func TestNestedLeafQuery(t *testing.T) {
+	nestedExistQuery := LeafQuery{
+		Name: "nested_path",
+		Type: NestedQuery,
+		Value: LeafQuery{
+			Type:  Exists,
+			Name:  "field",
+			Value: "value",
+		},
+	}
+	body, err := json.Marshal(&nestedExistQuery)
+	if err != nil {
+		t.Fatal(err)
+	}
+	expected := `{"nested":{"path":["nested_path"],"query":{"exists":{"field":"value"}}}}`
+	if string(body) != expected {
+		t.Errorf("\nWant: %q\nHave: %q", expected, string(body))
+	}
+}
+
 func TestWrappedQuery(t *testing.T) {
 	item := NestedQueryItem{
 		Not: []QueryItem{
