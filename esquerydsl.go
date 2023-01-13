@@ -217,14 +217,21 @@ func (q LeafQuery) handleMarshalQueryString(queryType string) ([]byte, error) {
 
 func (q LeafQuery) handleMarshalNestedQuery() ([]byte, error) {
 	item, ok := q.Value.(NestedQueryItem)
+	var queryItem interface{}
 	if !ok {
-		return nil, &QueryTypeErr{typeVal: NestedQuery}
+		leafItem, ok2 := q.Value.(LeafQuery)
+		if !ok2 {
+			return nil, &QueryTypeErr{typeVal: NestedQuery}
+		}
+		queryItem = leafItem
+	} else {
+		queryItem = GetWrappedQuery(item)
 	}
 
 	return json.Marshal(map[string]interface{}{
 		"nested": map[string]interface{}{
 			"path":  []string{q.Name},
-			"query": GetWrappedQuery(item),
+			"query": queryItem,
 		},
 	})
 }
