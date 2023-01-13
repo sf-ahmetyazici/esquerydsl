@@ -24,6 +24,7 @@ const (
 	QueryString
 	Nested
 	NestedQuery
+	Prefix = 9
 )
 
 // QueryTypeErr is a custom err returned if we are trying to stringify
@@ -47,6 +48,7 @@ func (qt QueryType) String() (string, error) {
 		"query_string",
 		"nested",
 		"nested_query",
+		"prefix",
 	}
 	if int(qt) > len(convs) {
 		return "", &QueryTypeErr{typeVal: qt}
@@ -145,15 +147,16 @@ func WrapQueryItems(itemType string, items ...QueryItem) QueryItem {
 }
 
 // Builds a JSON string as follows:
-// {
-//     "query": {
-//         "bool": {
-//             "must": [ ... ]
-//             "should": [ ... ]
-//             "filter": [ ... ]
-//         }
-//     }
-// }
+//
+//	{
+//	    "query": {
+//	        "bool": {
+//	            "must": [ ... ]
+//	            "should": [ ... ]
+//	            "filter": [ ... ]
+//	        }
+//	    }
+//	}
 type queryReqDoc struct {
 	Query       queryWrap           `json:"query,omitempty"`
 	Size        int                 `json:"size,omitempty"`
@@ -167,19 +170,19 @@ type queryWrap struct {
 }
 
 type boolWrap struct {
-	AndList    []leafQuery `json:"must,omitempty"`
-	NotList    []leafQuery `json:"must_not,omitempty"`
-	OrList     []leafQuery `json:"should,omitempty"`
-	FilterList []leafQuery `json:"filter,omitempty"`
+	AndList    []LeafQuery `json:"must,omitempty"`
+	NotList    []LeafQuery `json:"must_not,omitempty"`
+	OrList     []LeafQuery `json:"should,omitempty"`
+	FilterList []LeafQuery `json:"filter,omitempty"`
 }
 
-type leafQuery struct {
+type LeafQuery struct {
 	Type  QueryType
 	Name  string
 	Value interface{}
 }
 
-func (q leafQuery) handleMarshalType(queryType string) ([]byte, error) {
+func (q LeafQuery) handleMarshalType(queryType string) ([]byte, error) {
 	// lowercase wildcard queries
 	if q.Type == Wildcard {
 		if s, ok := q.Value.(string); ok {
@@ -202,7 +205,7 @@ func (q leafQuery) handleMarshalType(queryType string) ([]byte, error) {
 	})
 }
 
-func (q leafQuery) handleMarshalQueryString(queryType string) ([]byte, error) {
+func (q LeafQuery) handleMarshalQueryString(queryType string) ([]byte, error) {
 	return json.Marshal(map[string]interface{}{
 		queryType: map[string]interface{}{
 			"fields":           []string{q.Name},
@@ -212,7 +215,7 @@ func (q leafQuery) handleMarshalQueryString(queryType string) ([]byte, error) {
 	})
 }
 
-func (q leafQuery) handleMarshalNestedQuery() ([]byte, error) {
+func (q LeafQuery) handleMarshalNestedQuery() ([]byte, error) {
 	item, ok := q.Value.(NestedQueryItem)
 	if !ok {
 		return nil, &QueryTypeErr{typeVal: NestedQuery}
@@ -250,7 +253,7 @@ func getWrappedQuery(query query) queryWrap {
 	return queryWrap{Bool: boolDoc}
 }
 
-func (q leafQuery) MarshalJSON() ([]byte, error) {
+func (q LeafQuery) MarshalJSON() ([]byte, error) {
 	if q.Type == Nested {
 		return json.Marshal(getWrappedQuery(q.Value.(QueryDoc)))
 	}
@@ -264,10 +267,10 @@ func (q leafQuery) MarshalJSON() ([]byte, error) {
 	return q.handleMarshalType(queryType)
 }
 
-func updateList(queryItems []QueryItem) []leafQuery {
-	leafQueries := make([]leafQuery, 0)
+func updateList(queryItems []QueryItem) []LeafQuery {
+	leafQueries := make([]LeafQuery, 0)
 	for _, item := range queryItems {
-		leafQueries = append(leafQueries, leafQuery{
+		leafQueries = append(leafQueries, LeafQuery{
 			Type:  item.Type,
 			Name:  item.Field,
 			Value: item.Value,
